@@ -1,0 +1,256 @@
+---
+title: "IDE Survey Analysis"
+output: pdf_document
+date: "2024-04-12"
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+
+survey1 <- read.csv('survey.csv')
+
+survey <- survey1 %>%
+  mutate(across(
+    c(vscode_usefulfeat, idle_usefulfeat, pycharm_usefulfeat,
+      vscode_intuitive, idle_intuitive, pycharm_intuitive,
+      vscode_comfy, idle_comfy, pycharm_comfy,
+      vscode_frustration, idle_frustration, pycharm_frustration,
+      vscode_inconvenience, idle_inconvenience, pycharm_inconvenience,
+      vscode_timeconsume, idle_timeconsume, pycharm_timeconsume),
+    ~as.numeric(gsub("[^0-9]", "", .))
+  ))
+
+```
+
+# Positive Feelings 
+
+```{r}
+par(mfrow = c(3, 3))
+
+hist(survey$vscode_usefulfeat, main = "VSCode Usefulness", xlab = NULL, ylab = "Count", col="lightblue")
+hist(survey$idle_usefulfeat, main = "IDLE Usefulness", xlab = NULL, ylab = NULL, col = "lightcoral")
+hist(survey$pycharm_usefulfeat, main = "PyCharm Usefulness", xlab = NULL, ylab = NULL, col="lightgreen")
+
+hist(survey$vscode_intuitive, main = "VSCode Intuition", xlab = NULL, ylab = "Count", col = "lightblue")
+hist(survey$idle_intuitive, main = "IDLE Intuition", xlab = NULL, ylab = NULL, col="lightcoral")
+hist(survey$pycharm_intuitive, main = "PyCharm Intuition", xlab = NULL, ylab = NULL, col="lightgreen")
+
+hist(survey$vscode_comfy, main = "VSCode Comfort", xlab = "Rating", ylab = "Count", col = "lightblue")
+hist(survey$idle_comfy, main = "IDLE Comfort", xlab="Rating", col = "lightcoral")
+hist(survey$pycharm_comfy, main = "PyCharm Comfort", xlab="Rating", col = "lightgreen")
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+
+# Usefulness 
+
+survey_useful <- survey %>%
+  gather(key = "tool", value = "usefulness_rating", vscode_usefulfeat, idle_usefulfeat, pycharm_usefulfeat)
+
+group_useful <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_useful))
+group_useful <- factor(group_useful)
+
+# Intuition
+
+survey_intuitive <- survey %>%
+  gather(key = "tool", value = "intuitive_rating", vscode_intuitive, idle_intuitive, pycharm_intuitive)
+
+group_intuitive <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_intuitive))
+group_intuitive <- factor(group_intuitive)
+
+# Comfort
+
+survey_comfy <- survey %>%
+  gather(key = "tool", value = "comfy_rating", vscode_comfy, idle_comfy, pycharm_comfy)
+
+group_comfy <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_comfy))
+group_comfy <- factor(group_comfy)
+
+```
+
+```{r}
+# use kruskal wallis because data is ordinal
+
+kruskal.test(usefulness_rating ~ group_useful, data = survey_useful)
+kruskal.test(comfy_rating ~ group_comfy, data = survey_comfy)
+kruskal.test(intuitive_rating ~ group_intuitive, data = survey_intuitive)
+```
+
+# Negative Feelings 
+
+```{r}
+par(mfrow = c(3, 3))
+
+hist(survey$vscode_frustration, main = "VSCode Frustration", xlab = NULL, ylab = "Count", col = "lightblue")
+hist(survey$idle_frustration, main = "IDLE Frustration", xlab = NULL, ylab = NULL, col = "lightcoral")
+hist(survey$pycharm_frustration, main = "PyCharm Frustration", xlab = NULL, ylab = NULL, col = "lightgreen")
+
+hist(survey$vscode_inconvenience, main = "VSCode Inconvenience", xlab = NULL, ylab = "Count", col = "lightblue")
+hist(survey$idle_inconvenience, main = "IDLE Inconvenience", xlab = NULL, ylab = "", col = "lightcoral")
+hist(survey$pycharm_inconvenience, main = "PyCharm Inconvenience", xlab = NULL, ylab = "", col = "lightgreen")
+
+hist(survey$vscode_timeconsume, main = "VSCode Time Consumption", xlab = "Rating",  ylab = "Count", col = "lightblue")
+hist(survey$idle_timeconsume, main = "IDLE Time Consumption", xlab = "Rating", ylab = "", col = "lightcoral")
+hist(survey$pycharm_timeconsume, main = "PyCharm Time Consumption", xlab = "Rating", col = "lightgreen")
+
+
+
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+
+# Frustration
+
+survey_frustration <- survey %>%
+  gather(key = "tool", value = "frustration_rating", vscode_frustration, idle_frustration, pycharm_frustration)
+
+group_frustration <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_frustration))
+group_frustration <- factor(group_frustration)
+
+# Inconvenience
+
+survey_inconvenience <- survey %>%
+  gather(key = "tool", value = "inconvenience_rating", vscode_inconvenience, idle_inconvenience, pycharm_inconvenience)
+
+group_inconvenience <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_inconvenience))
+group_inconvenience <- factor(group_inconvenience)
+
+# Time Consumption
+
+survey_timeconsume <- survey %>%
+  gather(key = "tool", value = "timeconsume_rating", vscode_timeconsume, idle_timeconsume, pycharm_timeconsume)
+
+group_timeconsume <- rep(c("vscode", "idle", "pycharm"), length.out = nrow(survey_timeconsume))
+group_timeconsume <- factor(group_timeconsume)
+
+```
+
+```{r}
+kruskal.test(frustration_rating ~ group_frustration, data = survey_frustration)
+kruskal.test(inconvenience_rating ~ group_inconvenience, data = survey_inconvenience)
+kruskal.test(timeconsume_rating ~ group_timeconsume, data = survey_timeconsume)
+```
+
+# Preferences
+
+```{r}
+survey_pro <- survey %>%
+  select(program1, program2, program3) %>%
+  pivot_longer(cols = everything(), names_to = "program", values_to = "pro_value")
+
+program_num <- survey_pro %>%
+  group_by(program, pro_value) %>%
+  summarise(count = n())
+
+pro <- ggplot(program_num, aes(x = pro_value, y = count, fill = program)) +
+  geom_bar(stat = "identity", position = "dodge", color = 'black') +
+  labs(title = "Programming", x = "Program", y = "Count") +
+  scale_fill_discrete(name = "", labels = c("1st", "2nd", "3rd")) + 
+  theme(legend.position = "top", legend.key.size = unit(0.1, "cm"), legend.key.width = unit(0.1, "cm"))
+
+survey_nav <- survey %>%
+  select(nav1, nav2, nav3) %>%
+  pivot_longer(cols = everything(), names_to = "navigation", values_to = "nav_value")
+
+nav_num <- survey_nav %>%
+  group_by(navigation, nav_value) %>%
+  summarise(count = n())
+
+nav <- ggplot(nav_num, aes(x = nav_value, y = count, fill = navigation)) + 
+  geom_bar(stat = "identity", position = "dodge", color = 'black') + 
+  labs(title = "Navigation", x = "Program", y = NULL) + 
+  scale_fill_discrete(name = "", labels = c("1st", "2nd", "3rd")) + 
+  theme(legend.position = "top", legend.key.size = unit(0.1, "cm"), legend.key.width = unit(0.1, "cm"))
+
+survey_bug <- survey %>% 
+  select(debug1, debug2, debug3) %>%
+  pivot_longer(cols = everything(), names_to = "debugging", values_to = "bug_value")
+
+bug_num <- survey_bug %>%
+  group_by(debugging, bug_value) %>%
+  summarise(count = n())
+
+debug <- ggplot(bug_num, aes(x = bug_value, y = count, fill = debugging)) + 
+  geom_bar(stat = "identity", position = "dodge", color = 'black') + 
+  labs(title = "Debugging", x = "Program", y = "Count") + 
+  scale_fill_discrete(name = "", labels = c("1st", "2nd", "3rd")) + 
+  theme(legend.position = "top", legend.key.size = unit(0.1, "cm"), legend.key.width = unit(0.1, "cm"))
+
+survey_design <- survey %>%
+  select(design1, design2, design3) %>%
+  pivot_longer(cols = everything(), names_to = "design", values_to = "design_values")
+
+design_num <- survey_design %>%
+  group_by(design, design_values) %>%
+  summarise(count = n())
+
+design <- ggplot(design_num, aes(x = design_values, y = count, fill = design)) +
+  geom_bar(stat = "identity", position = "dodge", color = 'black') + 
+  labs(title = "Design", x = "Program", y = NULL) + 
+  scale_fill_discrete(name = "", labels = c("1st", "2nd", "3rd")) + 
+  theme(legend.position = "top", legend.key.size = unit(0.1, "cm"), legend.key.width = unit(0.1, "cm"))
+
+```
+
+```{r}
+# Run tests 
+
+# Create graph
+grid.arrange(pro, nav, debug, design, ncol = 2)
+
+# programming
+pro_char <- as.character(program_num$count)
+pro_k <- kruskal.test(pro_char ~ program_num$pro_value)
+pro_k
+
+# navigation
+nav_char <- as.character(nav_num$count)
+
+nav_k <- kruskal.test(nav_char ~ nav_num$nav_value)
+nav_k
+
+# debugging
+bug_char <- as.character(bug_num$count)
+bug_k <- kruskal.test(bug_char ~ bug_num$bug_value)
+bug_k
+
+#design
+design_char <- as.character(design_num$count)
+
+design_k <- kruskal.test(design_char ~ design_num$design_values)
+design_k
+```
+
+```{r}
+# Create graph
+
+grid.arrange(pro, nav, debug, design, ncol = 2)
+
+# Show results
+
+pro_k
+nav_k
+bug_k
+design_k
+```
+
+```{r}
+major_num <- survey %>%
+  group_by(Major) %>%
+  summarise(count = n())
+
+ggplot(major_num, aes(x = Major, y = count)) + 
+  geom_bar(stat = "identity", position = "dodge", color = 'black', fill = 'slateblue') +
+  labs(title = "Distribution of Majors")
+
+```
+
+
+

@@ -1,0 +1,244 @@
+---
+title: "The Better Survey Analysis"
+output: pdf_document
+date: "2024-04-21"
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(PMCMRplus)
+library(DescTools)
+
+survey1 <- read.csv('survey.csv')
+
+survey <- survey1 %>%
+  mutate(across(
+    c(vscode_usefulfeat, idle_usefulfeat, pycharm_usefulfeat,
+      vscode_intuitive, idle_intuitive, pycharm_intuitive,
+      vscode_comfy, idle_comfy, pycharm_comfy,
+      vscode_frustration, idle_frustration, pycharm_frustration,
+      vscode_inconvenience, idle_inconvenience, pycharm_inconvenience,
+      vscode_timeconsume, idle_timeconsume, pycharm_timeconsume),
+    ~as.numeric(gsub("[^0-9]", "", .))
+  ))
+
+```
+
+# Positive Feelings 
+
+```{r}
+usefulness <- survey %>%
+  pivot_longer(cols = c(vscode_usefulfeat, idle_usefulfeat, pycharm_usefulfeat),
+               names_to = "IDE",
+               values_to = "Usefulness")
+
+friedman_usefulness <- friedman.test(Usefulness ~ IDE | Name, data = usefulness)
+
+intuitive <- survey %>%
+  pivot_longer(cols = c(vscode_intuitive, idle_intuitive, pycharm_intuitive),
+               names_to = "IDE",
+               values_to = "Intuitive")
+
+friedman_intuitive <- friedman.test(Intuitive ~ IDE | Name, data = intuitive)
+
+comfortable <- survey %>%
+  pivot_longer(cols = c(vscode_comfy, idle_comfy, pycharm_comfy),
+               names_to = "IDE",
+               values_to = "Comfortable")
+
+friedman_comfortable <- friedman.test(Comfortable ~ IDE | Name, data = comfortable)
+
+x_u <- c(survey$vscode_usefulfeat, survey$idle_usefulfeat, survey$pycharm_usefulfeat)
+x_i <- c(survey$vscode_intuitive, survey$idle_intuitive, survey$pycharm_intuitive)
+x_c <- c(survey$vscode_comfy, survey$idle_comfy, survey$pycharm_comfy)
+
+g <- factor(rep(1:3, c(16, 16, 16)), 
+              labels = c("VSCode", 
+                         "IDLE", 
+                         "PyCharm"))
+
+```
+
+```{r}
+NemenyiTest(x_u, g)
+NemenyiTest(x_i, g)
+NemenyiTest(x_c, g)
+```
+
+```{r}
+print(friedman_usefulness)
+print(friedman_intuitive)
+print(friedman_comfortable)
+
+pairwise.wilcox.test(x_u, g)
+pairwise.wilcox.test(x_i, g)
+pairwise.wilcox.test(x_c, g)
+```
+
+# Negative Feelings 
+
+```{r}
+frustration <- survey %>%
+  pivot_longer(
+    cols = c(vscode_frustration, idle_frustration, pycharm_frustration),
+    names_to = "IDE",
+    values_to = "Frustration"
+  )
+
+friedman_frustration <- friedman.test(Frustration ~ IDE | Name, data = frustration)
+
+inconvenience <- survey %>%
+  pivot_longer(
+    cols = c(vscode_inconvenience, idle_inconvenience, pycharm_inconvenience),
+    names_to = "IDE",
+    values_to = "Inconvenience"
+  )
+
+friedman_inconvenience <- friedman.test(Inconvenience ~ IDE | Name, data = inconvenience)
+
+time_consume <- survey %>%
+  pivot_longer(
+    cols = c(vscode_timeconsume, idle_timeconsume, pycharm_timeconsume),
+    names_to = "IDE",
+    values_to = "TimeConsume"
+  )
+
+friedman_time_consume <- friedman.test(TimeConsume ~ IDE | Name, data = time_consume)
+
+g <- factor(rep(1:3, c(16, 16, 16)), 
+              labels = c("VSCode", 
+                         "IDLE", 
+                         "PyCharm"))
+
+x_f <- c(survey$vscode_frustration, survey$idle_frustration, survey$pycharm_frustration)
+x_inc <- c(survey$vscode_inconvenience, survey$idle_inconvenience, survey$pycharm_inconvenience)
+x_t <- c(survey$vscode_timeconsume, survey$idle_timeconsume, survey$pycharm_timeconsume)
+```
+
+```{r}
+NemenyiTest(x_f, g)
+NemenyiTest(x_inc, g)
+NemenyiTest(x_t, g)
+```
+
+
+```{r}
+print(friedman_frustration)
+print(friedman_inconvenience)
+print(friedman_time_consume)
+
+pairwise.wilcox.test(x_f, g)
+pairwise.wilcox.test(x_inc, g)
+pairwise.wilcox.test(x_t, g)
+```
+
+# Preferences
+
+```{r}
+nav <- data.frame(
+  vs_nav = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3),
+  idle_nav = c(1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3),
+  pycharm = c(1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3),
+  id = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+  stringsAsFactors = FALSE
+  )
+
+nav <- nav %>%
+  pivot_longer(
+    cols = c(vs_nav, idle_nav, pycharm),
+    names_to = "IDE",
+    values_to = "Navigation"
+  )
+
+friedman_nav <- friedman.test(Navigation ~ IDE | id, data = nav)
+```
+
+```{r}
+
+program <- data.frame(
+  vs_pro = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3),
+  idle_pro = c(1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3), 
+  pycharm_pro = c(1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3), 
+  id = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+  stringsAsFactors = FALSE
+  )
+
+program <- program %>%
+  pivot_longer(
+    cols = c(vs_pro, idle_pro, pycharm_pro),
+    names_to = "IDE", 
+    values_to = "Programming"
+  )
+
+friedman_pro <- friedman.test(Programming ~ IDE | id, data = program)
+
+```
+
+```{r}
+
+debugging <- data.frame(
+  pycharm_bug = c(1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3), 
+  idle_bug = c(1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3),
+  vs_bug = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3), 
+  id = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+  stringsAsFactors = FALSE
+  )
+
+debugging <- debugging %>%
+  pivot_longer(
+    cols = c(pycharm_bug, idle_bug, vs_bug), 
+    names_to = "IDE", 
+    values_to = "Debugging"
+  )
+
+friedman_bug <- friedman.test(Debugging ~ IDE | id, data = debugging)
+
+```
+
+```{r}
+design <- data.frame(
+  p_d = c(1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3), 
+  i_d = c(1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3), 
+  v_d = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3), 
+  id = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+  stringsAsFactors = FALSE
+)
+
+design <- design %>%
+  pivot_longer(
+    cols = c(p_d, i_d, v_d), 
+    names_to = "IDE", 
+    values_to = "Design"
+  )
+
+friedman_design <- friedman.test(Design ~ IDE | id, data = design)
+```
+
+```{r}
+# do testing 
+
+friedman_pro
+friedman_bug
+friedman_nav
+friedman_design
+```
+
+```{r}
+# post hoc testing 
+NemenyiTest(program$Programming, program$IDE)
+NemenyiTest(debugging$Debugging, debugging$IDE)
+NemenyiTest(nav$Navigation, nav$IDE)
+NemenyiTest(design$Design, design$IDE)
+```
+
+```{r}
+pairwise.wilcox.test(program$Programming, program$IDE)
+pairwise.wilcox.test(debugging$Debugging, debugging$IDE)
+pairwise.wilcox.test(nav$Navigation, nav$IDE)
+pairwise.wilcox.test(design$Design, design$IDE)
+```
+
+
